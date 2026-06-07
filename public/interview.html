@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Interview | HRMS</title>
+  <meta name="description" content="AI-powered voice and video interview platform for candidates." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0b0f1a;
+      --surface:   #111827;
+      --card:      #1a2235;
+      --border:    rgba(255,255,255,0.07);
+      --accent:    #6366f1;
+      --accent2:   #8b5cf6;
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --yellow:    #f59e0b;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --radius:    14px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── TOP NAV ─────────────────────────────────── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(11,15,26,0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand { font-size: 1.1rem; font-weight: 700; letter-spacing: -.5px; }
+    .brand span { color: var(--accent); }
+    .nav-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 999px; padding: 6px 14px;
+      font-size: .78rem; font-weight: 500; color: var(--muted);
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse-dot 2s infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+
+    /* ─── MAIN LAYOUT ─────────────────────────────── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+      padding: 28px 32px;
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ─── LEFT PANEL (video + controls) ──────────── */
+    .left-panel { display: flex; flex-direction: column; gap: 20px; }
+
+    .video-wrapper {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #000;
+      aspect-ratio: 16/9;
+      border: 1px solid var(--border);
+      box-shadow: 0 0 40px rgba(99,102,241,0.08);
+    }
+    #webcamVideo {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* mirror effect */
+    }
+    .video-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(11,15,26,0.9) 0%, transparent 45%);
+      pointer-events: none;
+    }
+    .video-off-msg {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 12px;
+      color: var(--muted); font-size: .9rem;
+    }
+    .video-off-msg svg { opacity: .35; }
+
+    /* corner badges */
+    .badge-rec {
+      position: absolute; top: 14px; left: 14px;
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(239,68,68,.2); border: 1px solid rgba(239,68,68,.4);
+      border-radius: 999px; padding: 4px 10px;
+      font-size: .72rem; font-weight: 600; color: #fca5a5;
+      opacity: 0; transition: opacity .3s;
+    }
+    .badge-rec.active { opacity: 1; }
+    .badge-rec .rdot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); animation: pulse-dot 1s infinite; }
+
+    .badge-cam {
+      position: absolute; top: 14px; right: 14px;
+      background: rgba(0,0,0,.55); backdrop-filter: blur(6px);
+      border: 1px solid var(--border); border-radius: 999px;
+      padding: 4px 10px; font-size: .72rem; color: var(--muted);
+    }
+
+    /* question count bottom-left */
+    .q-label {
+      position: absolute; bottom: 14px; left: 14px;
+      font-size: .8rem; font-weight: 600; color: #e0e7ff;
+    }
+
+    /* ─── CONTROLS BAR ────────────────────────────── */
+    .controls {
+      display: flex; align-items: center; justify-content: center; gap: 16px;
+    }
+    .ctrl-btn {
+      width: 52px; height: 52px; border-radius: 50%;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; transition: transform .15s, box-shadow .15s;
+    }
+    .ctrl-btn:hover { transform: scale(1.08); }
+    .ctrl-btn:active { transform: scale(.96); }
+
+    .ctrl-cam  { background: var(--card); border: 1px solid var(--border); color: var(--text); }
+    .ctrl-cam.off { background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.4); color: var(--red); }
+    .ctrl-mic  { background: var(--card); border: 1px solid var(--border); color: var(--text); }
+    .ctrl-mic.off { background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.4); color: var(--red); }
+
+    .ctrl-record {
+      width: 68px; height: 68px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: 0 0 0 0 rgba(99,102,241,.5);
+      color: #fff;
+      border: none; cursor: pointer; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem; transition: transform .15s, box-shadow .15s;
+    }
+    .ctrl-record:hover { transform: scale(1.06); box-shadow: 0 0 0 8px rgba(99,102,241,.2); }
+    .ctrl-record.recording {
+      background: linear-gradient(135deg, var(--red), #b91c1c);
+      animation: rec-pulse 1.5s infinite;
+    }
+    @keyframes rec-pulse {
+      0%  { box-shadow: 0 0 0 0   rgba(239,68,68,.6); }
+      70% { box-shadow: 0 0 0 14px rgba(239,68,68,0);  }
+      100%{ box-shadow: 0 0 0 0   rgba(239,68,68,0);  }
+    }
+    .ctrl-record:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    /* ─── WAVEFORM ─────────────────────────────────── */
+    .waveform-bar {
+      display: flex; align-items: center; justify-content: center;
+      gap: 3px; height: 32px;
+    }
+    .wave-line {
+      width: 3px; border-radius: 3px;
+      background: var(--accent);
+      transition: height .08s ease;
+    }
+
+    /* ─── RIGHT PANEL (interview flow) ────────────── */
+    .right-panel { display: flex; flex-direction: column; gap: 18px; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+    }
+
+    /* progress steps */
+    .steps { display: flex; gap: 6px; margin-bottom: 18px; }
+    .step {
+      flex: 1; height: 4px; border-radius: 999px;
+      background: var(--border); transition: background .4s;
+    }
+    .step.done { background: var(--green); }
+    .step.active { background: var(--accent); }
+
+    /* phase headings */
+    .phase-label {
+      font-size: .72rem; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 6px;
+    }
+    .phase-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+    .phase-sub   { font-size: .85rem; color: var(--muted); line-height: 1.6; }
+
+    /* question box */
+    #questionBox {
+      min-height: 90px; line-height: 1.7;
+      font-size: .92rem; color: var(--text);
+      background: rgba(99,102,241,.06);
+      border: 1px solid rgba(99,102,241,.2);
+      border-radius: 10px; padding: 14px 16px;
+      position: relative; display: none;
+    }
+    #questionBox::before {
+      content: '🎤';
+      position: absolute; top: -12px; left: 14px;
+      font-size: 1.1rem; background: var(--card); padding: 0 6px;
+    }
+
+    /* transcript preview */
+    #transcriptPreview {
+      font-size: .82rem; color: var(--muted); line-height: 1.6;
+      min-height: 48px; font-style: italic; display: none;
+    }
+
+    /* big action button */
+    .btn-primary {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; font-weight: 600; font-size: .92rem;
+      border: none; border-radius: 10px; cursor: pointer;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn-primary:hover   { opacity: .9; transform: translateY(-1px); }
+    .btn-primary:active  { transform: translateY(0); }
+    .btn-primary:disabled{ opacity: .4; cursor: not-allowed; transform: none; }
+
+    /* status messages */
+    #statusMsg {
+      text-align: center; font-size: .82rem; color: var(--muted);
+      min-height: 20px;
+    }
+    #statusMsg.error { color: #fca5a5; }
+    #statusMsg.success { color: #86efac; }
+
+    /* result card */
+    #resultCard { display: none; }
+    .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .score-item {
+      background: rgba(255,255,255,.03); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+    }
+    .score-name { font-size: .72rem; color: var(--muted); margin-bottom: 4px; }
+    .score-val  { font-size: 1.4rem; font-weight: 700; }
+    .score-val.hi  { color: var(--green); }
+    .score-val.mid { color: var(--yellow); }
+    .score-val.lo  { color: var(--red); }
+
+    .overall-ring {
+      text-align: center; margin: 20px 0 10px;
+    }
+    .ring-num { font-size: 3rem; font-weight: 800; }
+    .ring-label { font-size: .78rem; color: var(--muted); }
+
+    .ai-feedback {
+      font-size: .85rem; color: var(--muted); line-height: 1.7;
+      background: rgba(99,102,241,.06);
+      border-left: 3px solid var(--accent);
+      padding: 12px 14px; border-radius: 0 8px 8px 0;
+      margin-top: 12px;
+    }
+
+    /* input field */
+    .field-group { margin-bottom: 14px; }
+    .field-group label { font-size: .8rem; color: var(--muted); display: block; margin-bottom: 6px; }
+    .field-group input {
+      width: 100%; padding: 10px 14px;
+      background: rgba(255,255,255,.04); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: .88rem; font-family: inherit;
+      outline: none; transition: border-color .2s;
+    }
+    .field-group input:focus { border-color: var(--accent); }
+
+    /* spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: inline-block; vertical-align: middle;
+    }
+
+    /* permission overlay */
+    #permOverlay {
+      position: fixed; inset: 0; z-index: 999;
+      background: rgba(11,15,26,.97);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 20px; text-align: center; padding: 32px;
+    }
+    #permOverlay h2 { font-size: 1.4rem; font-weight: 700; }
+    #permOverlay p  { color: var(--muted); max-width: 420px; font-size: .9rem; line-height: 1.6; }
+    #permOverlay .icon-row { display: flex; gap: 24px; margin: 8px 0; }
+    #permOverlay .perm-icon { font-size: 2.5rem; }
+    .btn-allow {
+      padding: 13px 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; font-weight: 600; font-size: .95rem;
+      border: none; border-radius: 10px; cursor: pointer;
+      transition: transform .15s, opacity .2s;
+    }
+    .btn-allow:hover { transform: translateY(-2px); opacity: .92; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── PERMISSION OVERLAY ─────────────────────────────────────────── -->
+<div id="permOverlay">
+  <div class="icon-row">
+    <span class="perm-icon">📷</span>
+    <span class="perm-icon">🎙️</span>
+  </div>
+  <h2>Camera &amp; Microphone Access Required</h2>
+  <p>This AI interview uses your webcam for identity monitoring and your microphone to capture your spoken answers. No video is stored — only audio is transcribed.</p>
+  <button class="btn-allow" id="btnAllow">Allow Access &amp; Continue</button>
+  <p id="permError" style="color:#fca5a5;font-size:.82rem;display:none;"></p>
+</div>
+
+<!-- ─── NAV ───────────────────────────────────────────────────────── -->
+<nav>
+  <div class="brand">AI <span>HRMS</span></div>
+  <div class="nav-badge">
+    <div class="dot"></div>
+    <span id="navStatus">Interview Portal</span>
+  </div>
+</nav>
+
+<!-- ─── MAIN ──────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="video-wrapper">
+      <video id="webcamVideo" autoplay muted playsinline></video>
+      <div class="video-overlay"></div>
+
+      <!-- Video off placeholder -->
+      <div class="video-off-msg" id="videoOffMsg" style="display:none;">
+        <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#94a3b8">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+          <line x1="3" y1="3" x2="21" y2="21" stroke="#ef4444" stroke-width="1.5"/>
+        </svg>
+        <span>Camera off</span>
+      </div>
+
+      <div class="badge-rec" id="badgeRec"><div class="rdot"></div> REC</div>
+      <div class="badge-cam" id="badgeCam">🎥 Live</div>
+      <div class="q-label" id="qLabel"></div>
+    </div>
+
+    <!-- WAVEFORM -->
+    <div class="waveform-bar" id="waveformBar">
+      <!-- JS will populate lines -->
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+      <button class="ctrl-btn ctrl-cam" id="btnCam" title="Toggle camera">
+        📷
+      </button>
+      <button class="ctrl-btn ctrl-mic" id="btnMic" title="Toggle mic">
+        🎙️
+      </button>
+      <button class="ctrl-record" id="btnRecord" disabled title="Hold to record answer">
+        🎤
+      </button>
+    </div>
+
+    <p style="text-align:center;font-size:.78rem;color:var(--muted);">
+      Click &amp; hold the <strong style="color:var(--text)">🎤 button</strong> to record your answer, release to submit.
+    </p>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+
+    <!-- SETUP CARD -->
+    <div class="card" id="setupCard">
+      <div class="phase-label">Before You Begin</div>
+      <div class="phase-title">Enter Your Application ID</div>
+      <div class="phase-sub" style="margin-bottom:18px;">
+        You can find your Application ID in the interview invitation email sent by HR.
+      </div>
+      <div class="field-group">
+        <label for="inputAppId">Application ID</label>
+        <input type="text" id="inputAppId" placeholder="e.g. 42" />
+      </div>
+      <button class="btn-primary" id="btnStart">Start Interview</button>
+      <div style="margin-top:12px;" id="statusMsg"></div>
+    </div>
+
+    <!-- INTERVIEW CARD -->
+    <div class="card" id="interviewCard" style="display:none;">
+      <div class="steps" id="stepsBar">
+        <div class="step active" id="step0"></div>
+        <div class="step" id="step1"></div>
+        <div class="step" id="step2"></div>
+      </div>
+
+      <div class="phase-label" id="phaseLabel">Question 1 of 3</div>
+      <div class="phase-title" id="phaseTitle">Listen carefully</div>
+      <div id="questionBox"></div>
+
+      <div style="margin-top:16px;">
+        <div style="font-size:.76rem;color:var(--muted);margin-bottom:6px;">Your answer transcript</div>
+        <div id="transcriptPreview">(will appear after you record)</div>
+      </div>
+
+      <div style="margin-top:16px;" id="interviewStatus"></div>
+    </div>
+
+    <!-- RESULT CARD -->
+    <div class="card" id="resultCard">
+      <div class="phase-label">Interview Complete</div>
+      <div class="phase-title">Your AI Evaluation</div>
+
+      <div class="overall-ring">
+        <div class="ring-num" id="overallScore">—</div>
+        <div class="ring-label">Overall Score / 100</div>
+      </div>
+
+      <div class="score-grid">
+        <div class="score-item">
+          <div class="score-name">Communication</div>
+          <div class="score-val" id="commScore">—</div>
+        </div>
+        <div class="score-item">
+          <div class="score-name">Technical</div>
+          <div class="score-val" id="techScore">—</div>
+        </div>
+        <div class="score-item">
+          <div class="score-name">Problem Solving</div>
+          <div class="score-val" id="psScore">—</div>
+        </div>
+        <div class="score-item">
+          <div class="score-name">Confidence</div>
+          <div class="score-val" id="confScore">—</div>
+        </div>
+      </div>
+
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:4px;">Recommendation</div>
+      <div style="font-weight:600;font-size:.9rem;" id="recommendation">—</div>
+
+      <div class="ai-feedback" id="aiFeedback">—</div>
+
+      <div style="margin-top:18px;text-align:center;font-size:.8rem;color:var(--muted);">
+        Your results have been saved. HR will review and contact you soon. 🎉
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════════════
+const API_BASE = '';   // same-origin
+let authToken = localStorage.getItem('candidateToken') || '';
+
+// ═══════════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════════
+let stream = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let camEnabled = true;
+let micEnabled = true;
+let sessionId = null;
+let currentQuestion = null;
+let currentQuestionIndex = 0;
+const TOTAL_QUESTIONS = 3;
+let audioContext = null;
+let analyser = null;
+let waveAnimId = null;
+
+// ═══════════════════════════════════════════════════════════════════
+//  DOM REFS
+// ═══════════════════════════════════════════════════════════════════
+const permOverlay   = document.getElementById('permOverlay');
+const btnAllow      = document.getElementById('btnAllow');
+const permError     = document.getElementById('permError');
+const webcamVideo   = document.getElementById('webcamVideo');
+const videoOffMsg   = document.getElementById('videoOffMsg');
+const badgeRec      = document.getElementById('badgeRec');
+const badgeCam      = document.getElementById('badgeCam');
+const qLabel        = document.getElementById('qLabel');
+const btnCam        = document.getElementById('btnCam');
+const btnMic        = document.getElementById('btnMic');
+const btnRecord     = document.getElementById('btnRecord');
+const waveformBar   = document.getElementById('waveformBar');
+
+const setupCard     = document.getElementById('setupCard');
+const interviewCard = document.getElementById('interviewCard');
+const resultCard    = document.getElementById('resultCard');
+
+const inputAppId    = document.getElementById('inputAppId');
+const btnStart      = document.getElementById('btnStart');
+const statusMsg     = document.getElementById('statusMsg');
+
+const stepsBar      = document.getElementById('stepsBar');
+const phaseLabel    = document.getElementById('phaseLabel');
+const phaseTitle    = document.getElementById('phaseTitle');
+const questionBox   = document.getElementById('questionBox');
+const transcriptPrev= document.getElementById('transcriptPreview');
+const interviewStatus = document.getElementById('interviewStatus');
+
+// ═══════════════════════════════════════════════════════════════════
+//  WAVEFORM VISUALIZER
+// ═══════════════════════════════════════════════════════════════════
+const WAVE_COUNT = 22;
+const waveLines = [];
+for (let i = 0; i < WAVE_COUNT; i++) {
+  const el = document.createElement('div');
+  el.className = 'wave-line';
+  el.style.height = '4px';
+  waveformBar.appendChild(el);
+  waveLines.push(el);
+}
+
+function startWave() {
+  if (!stream) return;
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioContext.createMediaStreamSource(stream);
+  analyser = audioContext.createAnalyser();
+  analyser.fftSize = 64;
+  source.connect(analyser);
+  const dataArr = new Uint8Array(analyser.frequencyBinCount);
+
+  function draw() {
+    waveAnimId = requestAnimationFrame(draw);
+    analyser.getByteFrequencyData(dataArr);
+    const step = Math.floor(dataArr.length / WAVE_COUNT);
+    waveLines.forEach((line, i) => {
+      const val = dataArr[i * step] || 0;
+      const h = isRecording ? Math.max(4, (val / 255) * 52) : 4;
+      line.style.height = h + 'px';
+      line.style.opacity = isRecording ? (0.4 + (val / 255) * 0.6) : '0.25';
+    });
+  }
+  draw();
+}
+
+function stopWave() {
+  if (waveAnimId) cancelAnimationFrame(waveAnimId);
+  waveLines.forEach(l => { l.style.height = '4px'; l.style.opacity = '0.25'; });
+  if (audioContext) { audioContext.close(); audioContext = null; }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PERMISSIONS & MEDIA
+// ═══════════════════════════════════════════════════════════════════
+btnAllow.addEventListener('click', async () => {
+  try {
+    btnAllow.textContent = 'Requesting…';
+    btnAllow.disabled = true;
+    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    webcamVideo.srcObject = stream;
+    permOverlay.style.display = 'none';
+    startWave();
+  } catch (err) {
+    permError.textContent = `Permission denied: ${err.message}. Please allow camera & microphone in your browser settings.`;
+    permError.style.display = 'block';
+    btnAllow.textContent = 'Try Again';
+    btnAllow.disabled = false;
+  }
+});
+
+// ─── CAM TOGGLE ───
+btnCam.addEventListener('click', () => {
+  if (!stream) return;
+  const videoTracks = stream.getVideoTracks();
+  camEnabled = !camEnabled;
+  videoTracks.forEach(t => t.enabled = camEnabled);
+  webcamVideo.style.display = camEnabled ? 'block' : 'none';
+  videoOffMsg.style.display = camEnabled ? 'none' : 'flex';
+  btnCam.classList.toggle('off', !camEnabled);
+  btnCam.textContent = camEnabled ? '📷' : '🚫';
+  badgeCam.textContent = camEnabled ? '🎥 Live' : '📷 Off';
+});
+
+// ─── MIC TOGGLE ───
+btnMic.addEventListener('click', () => {
+  if (!stream) return;
+  const audioTracks = stream.getAudioTracks();
+  micEnabled = !micEnabled;
+  audioTracks.forEach(t => t.enabled = micEnabled);
+  btnMic.classList.toggle('off', !micEnabled);
+  btnMic.textContent = micEnabled ? '🎙️' : '🔇';
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  RECORD BUTTON (hold to record, release to submit)
+// ═══════════════════════════════════════════════════════════════════
+btnRecord.addEventListener('mousedown', startRecording);
+btnRecord.addEventListener('touchstart', e => { e.preventDefault(); startRecording(); });
+btnRecord.addEventListener('mouseup', stopRecording);
+btnRecord.addEventListener('touchend', e => { e.preventDefault(); stopRecording(); });
+
+function startRecording() {
+  if (!stream || isRecording || !currentQuestion) return;
+  audioChunks = [];
+  const opts = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ? { mimeType: 'audio/webm;codecs=opus' }
+    : {};
+  mediaRecorder = new MediaRecorder(stream, opts);
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+  mediaRecorder.start(100);
+  isRecording = true;
+  btnRecord.classList.add('recording');
+  btnRecord.textContent = '⏹️';
+  badgeRec.classList.add('active');
+  setStatus('Recording… speak your answer clearly.', '');
+  transcriptPrev.style.display = 'block';
+  transcriptPrev.textContent = '🔴 Recording…';
+}
+
+function stopRecording() {
+  if (!isRecording || !mediaRecorder) return;
+  mediaRecorder.stop();
+  isRecording = false;
+  btnRecord.classList.remove('recording');
+  btnRecord.textContent = '🎤';
+  btnRecord.disabled = true;
+  badgeRec.classList.remove('active');
+  mediaRecorder.onstop = submitVoiceAnswer;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  API HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function setStatus(msg, type = '') {
+  statusMsg.textContent = msg;
+  statusMsg.className = type;
+  interviewStatus.textContent = msg;
+  interviewStatus.className = type;
+}
+
+function scoreClass(v) {
+  if (v >= 7 || v >= 70) return 'hi';
+  if (v >= 5 || v >= 50) return 'mid';
+  return 'lo';
+}
+
+function applyColors() {
+  ['commScore','techScore','psScore','confScore'].forEach(id => {
+    const el = document.getElementById(id);
+    const v = parseFloat(el.textContent);
+    el.className = 'score-val ' + scoreClass(v);
+  });
+  const ov = parseFloat(document.getElementById('overallScore').textContent);
+  document.getElementById('overallScore').className = 'ring-num ' + (ov >= 70 ? 'hi' : ov >= 50 ? 'mid' : 'lo');
+  document.getElementById('overallScore').style.color = ov >= 70 ? 'var(--green)' : ov >= 50 ? 'var(--yellow)' : 'var(--red)';
+}
+
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate = 0.95; utt.pitch = 1;
+  window.speechSynthesis.speak(utt);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  START INTERVIEW
+// ═══════════════════════════════════════════════════════════════════
+btnStart.addEventListener('click', async () => {
+  const appId = inputAppId.value.trim();
+  if (!appId) { setStatus('Please enter your Application ID.', 'error'); return; }
+
+  if (!authToken) {
+    setStatus('No auth token found. Please log in first.', 'error');
+    return;
+  }
+
+  btnStart.disabled = true;
+  btnStart.innerHTML = '<span class="spinner"></span> Starting…';
+  setStatus('Initialising AI interview…', '');
+
+  try {
+    const res = await fetch(`${API_BASE}/api/interview/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify({ applicationId: parseInt(appId) })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.error || 'Failed to start interview');
+
+    sessionId = data.data.session.id;
+    const questions = data.data.questions;
+    currentQuestion = questions[0];
+    currentQuestionIndex = 0;
+
+    setupCard.style.display = 'none';
+    interviewCard.style.display = 'block';
+    document.getElementById('navStatus').textContent = 'Interview in Progress';
+
+    showQuestion(currentQuestion, 0);
+  } catch (err) {
+    setStatus(err.message, 'error');
+    btnStart.disabled = false;
+    btnStart.textContent = 'Start Interview';
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  SHOW QUESTION
+// ═══════════════════════════════════════════════════════════════════
+function showQuestion(question, idx) {
+  currentQuestion = question;
+  currentQuestionIndex = idx;
+
+  // Steps
+  for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+    const s = document.getElementById('step' + i);
+    if (!s) continue;
+    s.className = 'step ' + (i < idx ? 'done' : i === idx ? 'active' : '');
+  }
+
+  phaseLabel.textContent = `Question ${idx + 1} of ${TOTAL_QUESTIONS}`;
+  phaseTitle.textContent = 'Listen, then record your answer';
+  qLabel.textContent = `Q${idx + 1} / ${TOTAL_QUESTIONS}`;
+
+  const qText = question.question || question;
+  questionBox.textContent = qText;
+  questionBox.style.display = 'block';
+
+  transcriptPrev.style.display = 'none';
+  transcriptPrev.textContent = '';
+
+  setStatus('Press & hold 🎤 to record your answer.', '');
+  btnRecord.disabled = false;
+
+  // Speak the question aloud
+  speakText(qText);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SUBMIT VOICE ANSWER
+// ═══════════════════════════════════════════════════════════════════
+async function submitVoiceAnswer() {
+  setStatus('Transcribing your answer…', '');
+  transcriptPrev.style.display = 'block';
+  transcriptPrev.textContent = '⏳ Processing…';
+
+  const mimeType = audioChunks[0]?.type || 'audio/webm';
+  const ext = mimeType.includes('webm') ? 'webm' : mimeType.includes('ogg') ? 'ogg' : 'mp3';
+  const audioBlob = new Blob(audioChunks, { type: mimeType });
+
+  const formData = new FormData();
+  formData.append('audio', audioBlob, `answer.${ext}`);
+  formData.append('sessionId', sessionId);
+  formData.append('questionId', currentQuestion.id);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/interview/answer-voice`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Submission failed');
+
+    const d = data.data;
+
+    // Show transcription
+    if (d.transcription) {
+      transcriptPrev.textContent = `"${d.transcription}"`;
+    }
+
+    if (d.repeated) {
+      setStatus('Repeating the question…', '');
+      speakText(currentQuestion.question || currentQuestion);
+      btnRecord.disabled = false;
+      return;
+    }
+
+    if (d.status === 'completed') {
+      // Interview complete
+      const eval_ = d.evaluation;
+      showResults(eval_);
+    } else {
+      // Next question
+      setStatus('Great answer! Moving to next question…', 'success');
+      setTimeout(() => {
+        showQuestion(d.nextQuestion, d.nextIndex);
+      }, 1500);
+    }
+  } catch (err) {
+    setStatus(err.message, 'error');
+    btnRecord.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  SHOW RESULTS
+// ═══════════════════════════════════════════════════════════════════
+function showResults(ev) {
+  interviewCard.style.display = 'none';
+  resultCard.style.display = 'block';
+  document.getElementById('navStatus').textContent = 'Interview Complete';
+  qLabel.textContent = '✅ Done';
+
+  // Stop cam
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stopWave();
+
+  document.getElementById('overallScore').textContent = ev.overall_score ?? ev.overallScore ?? '—';
+  document.getElementById('commScore').textContent    = ev.communication_score ?? ev.communicationScore ?? '—';
+  document.getElementById('techScore').textContent    = ev.technical_score ?? ev.technicalScore ?? '—';
+  document.getElementById('psScore').textContent      = ev.problem_solving_score ?? ev.problemSolvingScore ?? '—';
+  document.getElementById('confScore').textContent    = ev.confidence_score ?? ev.confidenceScore ?? '—';
+  document.getElementById('recommendation').textContent = ev.recommendation ?? '—';
+  document.getElementById('aiFeedback').textContent   = ev.ai_feedback ?? ev.aiFeedback ?? '—';
+
+  applyColors();
+  speakText('Your interview is complete. Thank you for your time. We will review your results and get back to you soon.');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  TOKEN INPUT HELPER — if no token in localStorage, show small note
+// ═══════════════════════════════════════════════════════════════════
+if (!authToken) {
+  const note = document.createElement('p');
+  note.style.cssText = 'color:var(--yellow);font-size:.78rem;margin-top:8px;';
+  note.textContent = '⚠️ No login token found. Please log in as a candidate first, then revisit this page.';
+  document.getElementById('setupCard').appendChild(note);
+}
+</script>
+</body>
+</html>

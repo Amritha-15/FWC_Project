@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HR Bulk Screening</title>
+  <style>
+    body{font-family:Inter,Segoe UI,Arial;max-width:1100px;margin:24px auto;color:#111}
+    input,button{padding:8px 12px;margin:6px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{border:1px solid #e6e6e6;padding:8px;text-align:left}
+    th{background:#f7f7f7}
+    .actions button{margin-right:6px}
+  </style>
+</head>
+<body>
+  <h1>HR Bulk Screening - Ranked Candidates</h1>
+
+  <label>Job ID: <input id="jobId" type="number" placeholder="Enter job id" /></label>
+  <label>Auth Token: <input id="token" type="text" placeholder="Bearer token (paste here)" style="width:400px" /></label>
+  <button id="runBtn">Run Bulk Screening</button>
+
+  <div id="status"></div>
+
+  <div id="results"></div>
+
+  <script src="/js/hr_bulk_screen.js"></script>
+</body>
+</html>
